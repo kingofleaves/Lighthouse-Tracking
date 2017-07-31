@@ -124,15 +124,16 @@ void sensor1_angle_irq() {
   Serial.println(sensor1.basestation_angles[BASESTATION_B].vertical_angle);
 }
 
-float normalizeCount(uint32_t count)
+uint32_t normalizeCount(uint32_t count)
 {
-#if defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISK)
-  return (float)count/(float)F_BUS * INTENDED_CLOCK_F;
-#elif defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISL)
-  return (float)count/(float)(F_PLL/2) * INTENDED_CLOCK_F;
-#else
-  return 0.0;
-#endif
+//#if defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISK)
+//  return (float)count/(float)F_BUS * INTENDED_CLOCK_F;
+//#elif defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISL)
+//  return (float)count/(float)(F_PLL/2) * INTENDED_CLOCK_F;
+//#else
+//  return 0.0;
+//#endif
+  return count/2;
 }
 
 
