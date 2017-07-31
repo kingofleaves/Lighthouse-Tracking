@@ -3,13 +3,17 @@
 
 #define SENSOR1_PIN 20
 
+int max_index = 100;
+uint32_t *debug_array = new uint32_t[max_index];
+int debug_index = 0;
+
 //#ifdef TICKS_PER_US
 //#undef TICKS_PER_US
 //#endif
 //#define TICKS_PER_US 96
 //// To overwrite the settings for SAMD21 in the library nd port over to Teensy 3.2 (with 96MHZ clock)
 
-#define INTENDED_CLOCK_F 96000000
+#define INTENDED_CLOCK_F 48000000
 
 volatile uint16_t count = 0;
 volatile uint32_t timeSpace;
@@ -47,10 +51,19 @@ boolean run_loop = true;
 
 // the loop function runs over and over again forever
 void loop() {
-  queuePulse();
   if (run_loop) {
+    queuePulse();
+    
     // sensor1 requires this function to be executed on every loop
     sensor1.loop();
+//    // DEBUG:
+//    Serial.print(sensor1.debugPulse.bit.skip);
+//    Serial.print(sensor1.debugPulse.bit.axis);
+//    Serial.print(sensor1.debugPulse.bit.data);
+//    Serial.print(sensor1.debugPulse.bit.is_sync);
+//    Serial.print(sensor1.debugPulse.raw);
+//    Serial.println();
+//    if (millis() > 3000) run_loop = false;
   }
   if (Serial.available() > 0) {
       run_loop = false;
@@ -69,6 +82,15 @@ void queuePulse(void) {
         // no IR received
         timeMark = readValue;
         sensor1.queue_pulse_for_processing(normalizeCount(timeSpace + timeMark), normalizeCount(timeSpace));
+        // DEBUG:
+//        debug_array[debug_index++] = normalizeCount(timeMark);
+//        debug_array[debug_index++] = normalizeCount(timeSpace);
+//        if (debug_index >= max_index) {
+//          debug_index = 0;
+//          for (int i = 0; i < max_index; i++) {
+//            Serial.println(debug_array[i]);
+//          }
+//        }
 //        Serial.print("PW");
 //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace)/1000);
 //        Serial.print("Period");
