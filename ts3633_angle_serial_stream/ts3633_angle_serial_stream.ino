@@ -2,7 +2,7 @@
 #include "ts3633_tracking.h"
 
 #define SENSOR1_PIN 20
-
+ 
 int max_index = 100;
 uint32_t *debug_array = new uint32_t[max_index];
 int debug_index = 0;
