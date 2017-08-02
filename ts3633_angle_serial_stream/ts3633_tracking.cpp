@@ -157,6 +157,7 @@ void TS3633::loop() {
         }
 
       } //end of frame valid check
+      // TODO: Figure out what frame_valid actually means
       // Reset state machine variables to start a new frame
       frame_state = SYNC_DETECT;
       basestation = 0;
@@ -173,6 +174,7 @@ void TS3633::loop() {
       } // End of Frame Valid State Transition
       else {
         // Frame is not valid, restart the state machine back at the sync detect
+        // TODO: check if we should restart the state machine, or wait till FRAME_TIMEOUT_TIME (since restarting before the Rotors finish might lead to a desync)
         frame_state = SYNC_DETECT;
         basestation = 0;
         frame_valid = false;
@@ -183,11 +185,12 @@ void TS3633::loop() {
     pulse_id[basestation] = pulse_decode(pulse_width);
   
     // Digest the OOTX bit into the state machine
+    // TODO: How does the system figure out if this is a sync or rotor pulse??? won't this try to read rotor pulses as data as well??
     bs_ootx[basestation].digest_bit(pulse_id[basestation].bit.data);
   
     if (pulse_id[basestation].bit.is_sync == PULSE_ID_IS_SYNC){
       // Pulse might be a sync because of width
-      if (frame_state == SYNC_DETECT){
+      if (frame_state == SYNC_DETECT){  //TODO: check if this line should be combined with the above if statement in order for the else below to work
         // We're expecting syncs and currently in the sync detect state so that is one level of validation
         if (basestation == 0) {
           // Pulse is the first sync in the frame
@@ -205,6 +208,7 @@ void TS3633::loop() {
         // Check if decoded pulse indicates that it should NOT be skipped 
         if (pulse_id[basestation].bit.skip == SKIP_FALSE) {
           
+          // TODO: check the lines below, incl. condition of if statement and what happens in it
           // check for any previous Skip FALSE inside the frame
           if (frame_valid) {
             // Redundant skip = false information, unable to determine what the active frame

@@ -13,11 +13,12 @@ int debug_index = 0;
 //#define TICKS_PER_US 96
 //// To overwrite the settings for SAMD21 in the library nd port over to Teensy 3.2 (with 96MHZ clock)
 
-#define INTENDED_CLOCK_F 48000000
+#define INTENDED_CLOCK_F  48000000
+#define INTENDED_TICKS_PER_US  48
 
 volatile uint16_t count = 0;
-volatile uint32_t timeSpace;
-volatile uint32_t timeMark;
+volatile uint32_t timeSpace = 0;
+volatile uint32_t timeMark = 0;
 volatile bool cycleComplete = false;
 volatile bool isFalling = true;
 
@@ -40,7 +41,9 @@ void setup() {
   //tcc0_init(SENSOR1_PIN); // for SAMD21, not teensy 3.2
 
   Serial.println("Hello");
-
+  Serial.println(TICKS_PER_US);
+  Serial.println(F_BUS);
+  Serial.println(F_PLL);
   sensor1.attachBasestationFoundIRQ(sensor1_bs_found_irq);
 
   // Attach interrupt to call "sensor1_angle_irq" everytime that the angle registers in sensor1 are updated
@@ -126,14 +129,20 @@ void sensor1_angle_irq() {
 
 uint32_t normalizeCount(uint32_t count)
 {
-//#if defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISK)
-//  return (float)count/(float)F_BUS * INTENDED_CLOCK_F;
-//#elif defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISL)
-//  return (float)count/(float)(F_PLL/2) * INTENDED_CLOCK_F;
-//#else
-//  return 0.0;
-//#endif
-  return count/2;
+  #if defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISK)
+//    Serial.println("BUS");
+//    Serial.println( (count*INTENDED_TICKS_PER_US)/(F_BUS/1000000) );
+//    Serial.println(count/48);
+    return (count*INTENDED_TICKS_PER_US)/(F_BUS/1000000);
+  #elif defined(__arm__) && defined(TEENSYDUINO) && defined(KINETISL)
+//    Serial.println("PLL");
+    return (count*INTENDED_TICKS_PER_US)*2/(F_PLL/1000000);
+  #else
+    Serial.println("error");
+    return 0;
+  #endif
+
+//  return count;
 }
 
 
