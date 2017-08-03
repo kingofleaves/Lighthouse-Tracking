@@ -68,6 +68,7 @@ void TS3633::loop() {
     
     uint32_t pulse_period = pulse_fifo[fifo_dequeue_ptr].p;
     uint32_t pulse_width = pulse_fifo[fifo_dequeue_ptr].pw;
+    Serial.println("dequeued!");
 
     // Increment all time registers with measured time since last pulse (pulse_period)
     frame_time += pulse_period;
