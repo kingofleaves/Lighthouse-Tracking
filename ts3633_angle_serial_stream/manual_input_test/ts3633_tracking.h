@@ -139,6 +139,7 @@ class TS3633 {
     float_vec3_t get_position();
     basestation_angles_t basestation_angles[NUM_BASESTATIONS];
     uint32_t frame_count = 0;
+    bool debug = false;
     
   private:
     void debug_print_fixed(fixed num);

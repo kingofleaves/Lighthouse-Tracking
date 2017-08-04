@@ -68,11 +68,12 @@ void TS3633::loop() {
     
     uint32_t pulse_period = pulse_fifo[fifo_dequeue_ptr].p;
     uint32_t pulse_width = pulse_fifo[fifo_dequeue_ptr].pw;
-    Serial.print("dequeued! : Pulse Width = ");
-    Serial.print(pulse_width/48);
-    Serial.print(", Period = ");
-    Serial.println(pulse_period/48);
-
+    if (debug) {
+      Serial.print("dequeued! : Pulse Width = ");
+      Serial.print(pulse_width/48);
+      Serial.print(", Period = ");
+      Serial.println(pulse_period/48);
+    }
     // Increment all time registers with measured time since last pulse (pulse_period)
     frame_time += pulse_period;
     
@@ -86,10 +87,14 @@ void TS3633::loop() {
   
     // Use frame time to determine if a frame has completed
     if (frame_time > FRAME_TIMEOUT_TIME) {
-      Serial.println("TIMEOUT!");
+      if (debug) {
+        Serial.println("TIMEOUT!");
+      }
       // If the frame is valid, process the rotor data into Centroids and subsequent tracking data
       if (frame_valid) {
-        Serial.println("Valid. Calculating Centroid...");
+        if (debug) {
+          Serial.println("Valid. Calculating Centroid...");
+        }
         // Calculate the centroid
         int32_t current_centroid = 0;
 
@@ -99,13 +104,17 @@ void TS3633::loop() {
 
         if (active_frame_id.bit.axis == VERTICAL) {
           current_centroid = ((FP_360_DEGREES/rotor_hit_sync_period)*(rotor_hit_frame_time + (rotor_hit_width >> 1)))-FP_90_DEGREES;
-          Serial.print("Vertical centroid: ");
-          Serial.println(current_centroid);
+          if (debug) {
+            Serial.print("Vertical centroid: ");
+            Serial.println(current_centroid);
+          }
         }
         else {
           current_centroid = FP_90_DEGREES-((FP_360_DEGREES/rotor_hit_sync_period)*(rotor_hit_frame_time + (rotor_hit_width >> 1)));
-          Serial.print("Horizontal centroid: ");
-          Serial.println(current_centroid);
+          if (debug) {
+            Serial.print("Horizontal centroid: ");
+            Serial.println(current_centroid);
+          }
         }
         
   
@@ -172,14 +181,20 @@ void TS3633::loop() {
       frame_state = SYNC_DETECT;
       basestation = 0;
       frame_valid = false;
-      Serial.println("End of Timeout check.");
+      if (debug) {
+        Serial.println("End of Timeout check.");
+      }
     } //end of frame timeout check
     // Determine if pulse is arriving after the expected frame time that a sync pulse would be expected
     else if (frame_time > SYNC_BLANKING_TIME) {
-    Serial.println("SYNC IS OVER!");
+      if (debug) {
+        Serial.println("SYNC IS OVER!");
+      }
       // Determine validity of the sync data found earlier in the frame
       if (frame_valid) {
-        Serial.println("Valid yay!");
+        if (debug) {
+          Serial.println("Valid yay!  ");
+        }
         // Frame is valid, enter rotor detect state
         frame_state = ROTOR_DETECT;
         num_rotors[active_basestation][active_frame_id.bit.axis] = 0;

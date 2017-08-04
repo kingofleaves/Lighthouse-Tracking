@@ -7,12 +7,6 @@ int max_index = 100;
 uint32_t *debug_array = new uint32_t[max_index];
 int debug_index = 0;
 
-//#ifdef TICKS_PER_US
-//#undef TICKS_PER_US
-//#endif
-//#define TICKS_PER_US 96
-//// To overwrite the settings for SAMD21 in the library nd port over to Teensy 3.2 (with 96MHZ clock)
-
 #define INTENDED_CLOCK_F  48000000
 #define INTENDED_TICKS_PER_US  48
 
@@ -48,6 +42,9 @@ void setup() {
 
   // Attach interrupt to call "sensor1_angle_irq" everytime that the angle registers in sensor1 are updated
   sensor1.attachAngleIRQ(sensor1_angle_irq);
+
+  sensor1.debug = false;
+
 }
 
 boolean run_loop = true;
@@ -90,19 +87,21 @@ void queuePulse(void) {
         timeSpace = readValue;
         sensor1.queue_pulse_for_processing(normalizeCount(timeSpace + timeMark), normalizeCount(timeSpace));
         // DEBUG:
-        debug_array[debug_index++] = normalizeCount(timeSpace)/48;
-        debug_array[debug_index++] = normalizeCount(timeMark)/48;
-        if (debug_index >= max_index) {
-          debug_index = 0;
-          for (int i = 0; i < max_index; i++) {
-            Serial.println(debug_array[i]);
+        if (sensor1.debug) {
+          debug_array[debug_index++] = normalizeCount(timeSpace)/48;
+          debug_array[debug_index++] = normalizeCount(timeMark)/48;
+          if (debug_index >= max_index) {
+            debug_index = 0;
+            for (int i = 0; i < max_index; i++) {
+              Serial.println(debug_array[i]);
+            }
           }
+  //        Serial.print("PW");
+  //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace)/1000);
+  //        Serial.print("Period");
+  //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace + timeMark)/1000);
         }
-//        Serial.print("PW");
-//        Serial.println(sensor1_freq.countToNanoseconds(timeSpace)/1000);
-//        Serial.print("Period");
-//        Serial.println(sensor1_freq.countToNanoseconds(timeSpace + timeMark)/1000);
-        break;
+        break;  
     }
   } 
 }
