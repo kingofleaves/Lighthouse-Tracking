@@ -28,7 +28,7 @@ LighthouseSensor::sweep_pulse(
 {
 
 	// Sweep! The 0 degree mark is when the rotor
-	// that was not skpped sent its high pulse.
+	// that was not skipped sent its high pulse.
 	// midpoint of the pulse is what we'll use
 	unsigned now = val - len / 2;
 	unsigned delta = now - this->zero_time;

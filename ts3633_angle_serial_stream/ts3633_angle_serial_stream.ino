@@ -77,13 +77,17 @@ void queuePulse(void) {
   if(sensor1_freq.available()){
     uint32_t readValue = sensor1_freq.read();
     switch (sensor1_freq.readLevel()){
-      case LEVEL_SPACE_ONLY:
-        // IR received
-        timeSpace = readValue;
-        break;
+//      case LEVEL_SPACE_ONLY:
+//        // IR received
+//        timeSpace = readValue;
+//        break;
       case LEVEL_MARK_ONLY:
         // no IR received
         timeMark = readValue;
+        break;
+      case LEVEL_SPACE_ONLY:
+        // IR received
+        timeSpace = readValue;
         sensor1.queue_pulse_for_processing(normalizeCount(timeSpace + timeMark), normalizeCount(timeSpace));
         // DEBUG:
         debug_array[debug_index++] = normalizeCount(timeSpace)/48;
