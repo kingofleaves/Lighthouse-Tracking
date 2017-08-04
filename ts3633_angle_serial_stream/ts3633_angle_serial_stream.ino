@@ -86,14 +86,14 @@ void queuePulse(void) {
         timeMark = readValue;
         sensor1.queue_pulse_for_processing(normalizeCount(timeSpace + timeMark), normalizeCount(timeSpace));
         // DEBUG:
-//        debug_array[debug_index++] = normalizeCount(timeMark);
-//        debug_array[debug_index++] = normalizeCount(timeSpace);
-//        if (debug_index >= max_index) {
-//          debug_index = 0;
-//          for (int i = 0; i < max_index; i++) {
-//            Serial.println(debug_array[i]);
-//          }
-//        }
+        debug_array[debug_index++] = normalizeCount(timeSpace)/48;
+        debug_array[debug_index++] = normalizeCount(timeMark)/48;
+        if (debug_index >= max_index) {
+          debug_index = 0;
+          for (int i = 0; i < max_index; i++) {
+            Serial.println(debug_array[i]);
+          }
+        }
 //        Serial.print("PW");
 //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace)/1000);
 //        Serial.print("Period");
