@@ -174,7 +174,6 @@ void TS3633::loop() {
             position_IRQ_func();
           }
         }
-
       } //end of frame valid check
       // TODO: Figure out what frame_valid actually means
       // Reset state machine variables to start a new frame
@@ -364,7 +363,6 @@ pulse_decode_t TS3633::pulse_decode(uint32_t pulse_width) {
   }
   return rtn;
 }
-
 
 // The Beno algorithim is a direct solver method for finding the x,y,z cartesian coordinates of an object based on relative angles from
 // two reference objects.  It is highly optimized to run fast and efficent on embedded processors with limited ALU instruction sets

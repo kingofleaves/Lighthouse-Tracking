@@ -1,7 +1,9 @@
 #include <FreqMeasureMulti.h>
 #include "ts3633_tracking.h"
+#include "location_2d.h"
 
 #define SENSOR1_PIN 20
+#define SENSOR2_PIN 23
  
 int max_index = 100;
 uint32_t *debug_array = new uint32_t[max_index];
@@ -13,12 +15,22 @@ int debug_index = 0;
 volatile uint16_t count = 0;
 volatile uint32_t timeSpace = 0;
 volatile uint32_t timeMark = 0;
+volatile uint32_t timeSpace2 = 0;
+volatile uint32_t timeMark2 = 0;
 volatile bool cycleComplete = false;
 volatile bool isFalling = true;
 
+float *angles = new float[4];
+int angle_index = 0;
+bool sensor1_updated = false;
+bool sensor2_updated = false;
+
+
 FreqMeasureMulti sensor1_freq;
+FreqMeasureMulti sensor2_freq;
 
 TS3633 sensor1;
+TS3633 sensor2;
 
 // How the lighthouse works: http://i.kinja-img.com/gawker-media/image/upload/s--wsP3xmPN--/1259287828241194666.gif 
 
@@ -29,21 +41,24 @@ void setup() {
   while (!Serial);
 
   pinMode(SENSOR1_PIN, INPUT); 
+  pinMode(SENSOR2_PIN, INPUT); 
 
   sensor1_freq.begin(SENSOR1_PIN, FREQMEASUREMULTI_ALTERNATE);
-
-  //tcc0_init(SENSOR1_PIN); // for SAMD21, not teensy 3.2
+  sensor2_freq.begin(SENSOR2_PIN, FREQMEASUREMULTI_ALTERNATE);
 
   Serial.println("Hello");
   Serial.println(TICKS_PER_US);
   Serial.println(F_BUS);
   Serial.println(F_PLL);
   sensor1.attachBasestationFoundIRQ(sensor1_bs_found_irq);
+  sensor2.attachBasestationFoundIRQ(sensor2_bs_found_irq);
 
   // Attach interrupt to call "sensor1_angle_irq" everytime that the angle registers in sensor1 are updated
   sensor1.attachAngleIRQ(sensor1_angle_irq);
+  sensor2.attachAngleIRQ(sensor2_angle_irq);
 
   sensor1.debug = false;
+  sensor2.debug = false;
 
 }
 
@@ -52,10 +67,12 @@ boolean run_loop = true;
 // the loop function runs over and over again forever
 void loop() {
   if (run_loop) {
-    queuePulse();
+    queuePulses();
     
     // sensor1 requires this function to be executed on every loop
     sensor1.loop();
+    sensor2.loop();
+
 //    // DEBUG:
 //    Serial.print(sensor1.debugPulse.bit.skip);
 //    Serial.print(sensor1.debugPulse.bit.axis);
@@ -70,14 +87,10 @@ void loop() {
   }
 }
 
-void queuePulse(void) {
+void queuePulses(void) {
   if(sensor1_freq.available()){
     uint32_t readValue = sensor1_freq.read();
     switch (sensor1_freq.readLevel()){
-//      case LEVEL_SPACE_ONLY:
-//        // IR received
-//        timeSpace = readValue;
-//        break;
       case LEVEL_MARK_ONLY:
         // no IR received
         timeMark = readValue;
@@ -86,48 +99,132 @@ void queuePulse(void) {
         // IR received
         timeSpace = readValue;
         sensor1.queue_pulse_for_processing(normalizeCount(timeSpace + timeMark), normalizeCount(timeSpace));
-        // DEBUG:
-        if (sensor1.debug) {
-          debug_array[debug_index++] = normalizeCount(timeSpace)/48;
-          debug_array[debug_index++] = normalizeCount(timeMark)/48;
-          if (debug_index >= max_index) {
-            debug_index = 0;
-            for (int i = 0; i < max_index; i++) {
-              Serial.println(debug_array[i]);
-            }
-          }
-  //        Serial.print("PW");
-  //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace)/1000);
-  //        Serial.print("Period");
-  //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace + timeMark)/1000);
-        }
         break;  
     }
   } 
+  if(sensor2_freq.available()){
+    uint32_t readValue = sensor2_freq.read();
+    switch (sensor2_freq.readLevel()){
+      case LEVEL_MARK_ONLY:
+        // no IR received
+        timeMark2 = readValue;
+        break;
+      case LEVEL_SPACE_ONLY:
+        // IR received
+        timeSpace2 = readValue;
+        sensor2.queue_pulse_for_processing(normalizeCount(timeSpace2 + timeMark2), normalizeCount(timeSpace2));
+        break;  
+    }
+  } 
+
+//    if(sensor1_freq.available()){
+//    uint32_t readValue = sensor1_freq.read();
+//    switch (sensor1_freq.readLevel()){
+////      case LEVEL_SPACE_ONLY:
+////        // IR received
+////        timeSpace = readValue;
+////        break;
+//      case LEVEL_MARK_ONLY:
+//        // no IR received
+//        timeMark = readValue;
+//        break;
+//      case LEVEL_SPACE_ONLY:
+//        // IR received
+//        timeSpace = readValue;
+//        sensor1.queue_pulse_for_processing(normalizeCount(timeSpace + timeMark), normalizeCount(timeSpace));
+//        // DEBUG:
+//        if (sensor1.debug) {
+//          debug_array[debug_index++] = normalizeCount(timeSpace)/48;
+//          debug_array[debug_index++] = normalizeCount(timeMark)/48;
+//          if (debug_index >= max_index) {
+//            debug_index = 0;
+//            for (int i = 0; i < max_index; i++) {
+//              Serial.println(debug_array[i]);
+//            }
+//          }
+//  //        Serial.print("PW");
+//  //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace)/1000);
+//  //        Serial.print("Period");
+//  //        Serial.println(sensor1_freq.countToNanoseconds(timeSpace + timeMark)/1000);
+//        }
+//        break;  
+//    }
+//  } 
 }
+
+void test2D(void) {
+  LOC2D test_unit;
+  test_unit.init(0, 0, 1, 1);
+  test_unit.variable_distance = false;
+  test_unit.debug = true;
+  test_unit.sensor_separation = 0.015;
+     
+// TODO: Put in initializer for angles array and pass it into LOC2D to test.
+    if(test_unit.debug) {  
+      Serial.print("angle 1: ");
+      Serial.println(angles[0]);
+      Serial.print("angle 2: ");
+      Serial.println(angles[1]);
+      Serial.print("angle 3: ");
+      Serial.println(angles[2]);
+      Serial.print("angle 4: ");
+      Serial.println(angles[3]);
+    }
+
+    location_t test_loc = test_unit.get_location(angles);
+    Serial.print("Position: X: (in mm) ");
+    Serial.println(test_loc.position.x * 1000);
+    Serial.print("Position: Y: (in mm) ");
+    Serial.println(test_loc.position.y * 1000);
+    Serial.print("Orientation: (in deg) ");
+    Serial.println(test_loc.orientation);
+}
+
 
 void sensor1_bs_found_irq(uint32_t bs_id) {
   Serial.print("New Basestation Found: ");
   Serial.println(bs_id,HEX);
 }
 
+void sensor2_bs_found_irq(uint32_t bs_id) {
+  Serial.print("New Basestation Found: ");
+  Serial.println(bs_id,HEX);
+}
+
 void sensor1_angle_irq() {
-//  Serial.print("PW");
-//  Serial.println(sensor1_freq.countToNanoseconds(timeSpace)/1000);
-//  Serial.print("Period");
-//  Serial.println(sensor1_freq.countToNanoseconds(timeSpace + timeMark)/1000);
-  Serial.print("BS A (");
-  Serial.print(sensor1.basestation_angles[BASESTATION_A].basestation_id,HEX);
-  Serial.print(") H=");
-  Serial.print(sensor1.basestation_angles[BASESTATION_A].horizontal_angle);
-  Serial.print(", V=");
-  Serial.print(sensor1.basestation_angles[BASESTATION_A].vertical_angle);
-  Serial.print(" | BS B (");
-  Serial.print(sensor1.basestation_angles[BASESTATION_B].basestation_id,HEX);
-  Serial.print(") H=");
-  Serial.print(sensor1.basestation_angles[BASESTATION_B].horizontal_angle);
-  Serial.print(", V=");
-  Serial.println(sensor1.basestation_angles[BASESTATION_B].vertical_angle);
+
+  angles[0] = sensor1.basestation_angles[BASESTATION_A].horizontal_angle;
+  angles[1] = sensor1.basestation_angles[BASESTATION_A].vertical_angle;
+  sensor1_updated = true;
+  if (sensor1_updated && sensor2_updated) {
+    sensor1_updated = false;
+    sensor2_updated = false;
+    test2D();
+  }
+//  Serial.print("BS A (");
+//  Serial.print(sensor1.basestation_angles[BASESTATION_A].basestation_id,HEX);
+//  Serial.print(") H=");
+//  Serial.print(sensor1.basestation_angles[BASESTATION_A].horizontal_angle);
+//  Serial.print(", V=");
+//  Serial.print(sensor1.basestation_angles[BASESTATION_A].vertical_angle);
+//  Serial.print(" | BS B (");
+//  Serial.print(sensor1.basestation_angles[BASESTATION_B].basestation_id,HEX);
+//  Serial.print(") H=");
+//  Serial.print(sensor1.basestation_angles[BASESTATION_B].horizontal_angle);
+//  Serial.print(", V=");
+//  Serial.println(sensor1.basestation_angles[BASESTATION_B].vertical_angle);
+}
+
+void sensor2_angle_irq() {
+
+  angles[2] = sensor2.basestation_angles[BASESTATION_A].horizontal_angle;
+  angles[3] = sensor2.basestation_angles[BASESTATION_A].vertical_angle;
+  sensor2_updated = true;
+  if (sensor1_updated && sensor2_updated) {
+    sensor1_updated = false;
+    sensor2_updated = false;
+    test2D();
+  }
 }
 
 uint32_t normalizeCount(uint32_t count)
@@ -144,7 +241,6 @@ uint32_t normalizeCount(uint32_t count)
     Serial.println("error");
     return 0;
   #endif
-
 //  return count;
 }
 

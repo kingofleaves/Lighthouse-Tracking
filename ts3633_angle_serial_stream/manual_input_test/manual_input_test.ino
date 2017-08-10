@@ -1,4 +1,5 @@
 #include "ts3633_tracking.h"
+#include "location_2d.h"
 
 #define SENSOR1_PIN 20
  
@@ -51,8 +52,8 @@ boolean run_loop = true;
 // the loop function runs over and over again forever
 void loop() {
   if (run_loop) {
-    queuePulse();
-    
+    //queuePulse();
+    test2D(); 
     // sensor1 requires this function to be executed on every loop
     sensor1.loop();
 //    // DEBUG:
@@ -71,11 +72,73 @@ void queuePulse(void) {
   if (Serial.available()) {
     input = Serial.readString();
     int split_index = input.indexOf(',');  //finds location of first ,
-    String pulse_width = input.substring(0, split_index);   //captures first data String
-    String period = input.substring(split_index+1); 
+    String pulse_width = input.substring(0, split_index).trim();   //captures first data String
+    String period = input.substring(split_index+1).trim(); 
 //    Serial.println(pulse_width);
 //    Serial.println(period);
     sensor1.queue_pulse_for_processing(period.toInt(), pulse_width.toInt());
+  }
+}
+
+void test2D(void) {
+  LOC2D test_unit;
+  test_unit.init(0, 0, 1, 1);
+  test_unit.variable_distance = true; // TODO: Test to see if this is the cause of the huge jitter -> i.e. change this to false
+  test_unit.debug = true;
+  test_unit.sensor_separation = 300;
+  String input = "";
+  if (Serial.available()) {
+    input = Serial.readString();
+    int split_index_1 = input.indexOf(',');  //finds location of first ,
+    String angle_1 = input.substring(0, split_index_1).trim();   
+    input = input.substring(split_index_1 + 1);
+    int split_index_2 = input.indexOf(',');  //finds location of second,
+    String angle_2 = input.substring(0, split_index_2).trim();
+    input = input.substring(split_index_2 + 1);
+    int split_index_3 = input.indexOf(',');  //finds location of third,
+    String angle_3 = input.substring(0, split_index_3).trim();   
+    String angle_4 = input.substring(split_index_3 + 1).trim();
+     
+// TODO: Put in initializer for angles array and pass it into LOC2D to test.
+    float *angles = new float[4];
+    angles[0] = angle_1.toFloat();
+    angles[1] = angle_2.toFloat();
+    angles[2] = angle_3.toFloat();
+    angles[3] = angle_4.toFloat();
+
+    if(test_unit.debug) {
+      Serial.print("angle 1: ");
+      Serial.println(angle_1);
+      Serial.print("index 1: ");
+      Serial.println(split_index_1);
+      Serial.print("angle 2: ");
+      Serial.println(angle_2);
+      Serial.print("index 2: ");
+      Serial.println(split_index_2);
+      Serial.print("angle 3: ");
+      Serial.println(angle_3);
+      Serial.print("index 3: ");
+      Serial.println(split_index_3);
+      Serial.print("angle 4: ");
+      Serial.println(angle_4);
+      
+      Serial.print("angle 1: ");
+      Serial.println(angles[0]);
+      Serial.print("angle 2: ");
+      Serial.println(angles[1]);
+      Serial.print("angle 3: ");
+      Serial.println(angles[2]);
+      Serial.print("angle 4: ");
+      Serial.println(angles[3]);
+    }
+
+    location_t test_loc = test_unit.get_location(angles);
+    Serial.print("Position: X: ");
+    Serial.println(test_loc.position.x);
+    Serial.print("Position: Y: ");
+    Serial.println(test_loc.position.y);
+    Serial.print("Orientation: ");
+    Serial.println(test_loc.orientation);
   }
 }
 
